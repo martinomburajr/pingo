@@ -1,4 +1,4 @@
-package main
+package icmp
 
 import (
 	"encoding/binary"
@@ -10,8 +10,7 @@ import (
 	"time"
 )
 
-
-func send(destinationIp string) {
+func Send(destinationIp string, timeChan chan time.Time) {
 	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_ICMP)
 	if err != nil {
 		log.Println(err)
@@ -26,30 +25,28 @@ func send(destinationIp string) {
 		panic(err)
 	}
 
-	//packet, err := net.ListenPacket("ip4:1", "127.0.0.1")
-	//if err != nil {
-	//	log.Println(err)
+	destIp := net.ParseIP(destinationIp)
+	data := makepacket(destIp)
+
+	//for _, v := range data {
+	//	if v == 0 {
+	//		fmt.Printf("00 ")
+	//		continue
+	//	} else if v < 0xf {
+	//		fmt.Printf("0%x ", v)
+	//		continue
+	//	}
+	//	fmt.Printf("%x ", v)
 	//}
+	//fmt.Printf("\n")
 
-	data := makepacket(net.ParseIP(destinationIp))
 
-	for _, v := range data {
-		if v == 0 {
-			fmt.Printf("00 ")
-			continue
-		} else if v < 0xf {
-			fmt.Printf("0%x ", v)
-			continue
-		}
-		fmt.Printf("%x ", v)
-	}
-	fmt.Printf("\n")
-
-	start := time.Now()
+	fmt.Printf("[pingo]: (send) ==> %v\n", destIp)
+	go func() {
+		timeChan <- time.Now()
+	}()
 	err = syscall.Sendto(fd, data, 0, &addr)
-	end := time.Now().Sub(start)
 
-	log.Printf("\n\n\tEnd: %v", end)
 	if err != nil {
 		panic(err)
 	}
