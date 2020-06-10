@@ -6,14 +6,9 @@ import (
 	"golang.org/x/net/ipv4"
 	"log"
 	"net"
-	"strconv"
 	"syscall"
 	"time"
 )
-
-func main() {
-	send()
-}
 
 
 func send(destinationIp string) {
@@ -36,7 +31,7 @@ func send(destinationIp string) {
 	//	log.Println(err)
 	//}
 
-	data := makepacket()
+	data := makepacket(net.ParseIP(destinationIp))
 
 	for _, v := range data {
 		if v == 0 {
@@ -60,11 +55,7 @@ func send(destinationIp string) {
 	}
 }
 
-func makepacket() []byte {
-	marshalBinary := time.Now().UnixNano()
-	s := strconv.FormatInt(marshalBinary, 10)
-	log.Printf("TIME: %s", s)
-
+func makepacket(destinationIP net.IP) []byte {
 	icmp := []byte{
 		8, // type: echo request
 		0, // code: not used by echo request
@@ -75,7 +66,7 @@ func makepacket() []byte {
 		0, // sequence number (16 bit). zero allowed.
 		0,
 	}
-	icmp = append(icmp, []byte(s)...)
+	//icmp = append(icmp, []byte(s)...)
 
 	cs := csum(icmp)
 	icmp[2] = byte(cs)
@@ -88,7 +79,7 @@ func makepacket() []byte {
 		TotalLen: ipv4.HeaderLen + len(icmp), // 20 bytes for IP, 10 for ICMP
 		TTL:      64,
 		Protocol: 1, // ICMP
-		Dst:      net.IPv4(127,0,0,1),
+		Dst:      destinationIP,
 		// ID, Src and Checksum will be set for us by the kernel
 	}
 
@@ -99,22 +90,6 @@ func makepacket() []byte {
 
 	binary.LittleEndian.PutUint16(buf[2:4], uint16(len(icmp) + len(buf)))
 	return append(buf, icmp...)
-}
-
-func checksum(b []byte) uint16 {
-	var s uint32
-	for i := range b {
-		s += uint32(b[i])
-	}
-	x := s >> 16
-	s = s >> 16 + s&0xffff
-	s = s + s>>16
-
-	fmt.Printf("\nAdd: %x", s)
-	fmt.Printf("\nx: %x", x)
-	fmt.Printf("\nOnes Complement: %x", ^s)
-	//fmt.Printf("\ny: %x", y)
-	return uint16(^s)
 }
 
 func csum(b []byte) uint16 {

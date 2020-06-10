@@ -7,10 +7,6 @@ import (
 	"syscall"
 )
 
-func main() {
-	recv()
-}
-
 func recv() {
 	fmt.Println("Starting socket!")
 	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_ICMP)
